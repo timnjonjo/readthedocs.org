@@ -283,12 +283,18 @@ class UpdateDocsTask(SyncRepositoryMixin, Task):
                 'An unhandled exception was raised during build setup',
                 extra={'tags': {'build': build_pk}}
             )
+            # FIXME: ``self.setup_env`` is created inside the ``self.run_setup``
+            # so, if the exception ocurrs before this call or inside it but
+            # before creating the ``self.setup_env`` this ``except`` block will
+            # also fail
             self.setup_env.failure = BuildEnvironmentError(
                 BuildEnvironmentError.GENERIC_WITH_BUILD_ID.format(
                     build_id=build_pk,
                 )
             )
             self.setup_env.update_build(BUILD_STATE_FINISHED)
+            # Send notifications for unhandled errors
+            self.send_notifications()
             return False
         else:
             # No exceptions in the setup step, catch unhandled errors in the
@@ -300,12 +306,17 @@ class UpdateDocsTask(SyncRepositoryMixin, Task):
                     'An unhandled exception was raised during project build',
                     extra={'tags': {'build': build_pk}}
                 )
+                # FIXME: ``self.build_env`` is created inside the
+                # ``self.run_build`` so, if the exception ocurrs before this
+                # variable is created this ``except`` block will also fail
                 self.build_env.failure = BuildEnvironmentError(
                     BuildEnvironmentError.GENERIC_WITH_BUILD_ID.format(
                         build_id=build_pk,
                     )
                 )
                 self.build_env.update_build(BUILD_STATE_FINISHED)
+                # Send notifications for unhandled errors
+                self.send_notifications()
                 return False
 
         return True
